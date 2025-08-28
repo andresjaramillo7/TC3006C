@@ -1,17 +1,14 @@
 from operator import itemgetter
 import random
-from euclideanDistance import euclideanDistance
-from manhattanDistance import manhattanDistance
-from cosineDistance import cosineDistance
 
-def classify(testList, trainingLists, trainingLabels, k):
-    distance = []
+def classify(testList, trainingLists, trainingLabels, k, distance_fn):
+    distances = []
     for trainingList, label in zip (trainingLists, trainingLabels):
-        value = cosineDistance(testList, trainingList)
-        distance.append((value, label))
-    distance.sort(key=itemgetter(0))
+        value = distance_fn(testList, trainingList)
+        distances.append((value, label))
+    distances.sort(key=itemgetter(0))
     votelabels = []
-    for x in distance[:k]:
+    for x in distances[:k]:
         votelabels.append(x[1])
     counts = {}
     for label in votelabels:
