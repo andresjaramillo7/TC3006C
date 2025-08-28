@@ -1,14 +1,21 @@
 from operator import itemgetter
-from statistics import mode
-from euclideanDistance import euclideanDistance
+import random
 
-def classify(testList, trainingLists, trainingLabels, k):
-    distance = []
+def classify(testList, trainingLists, trainingLabels, k, distance_fn):
+    distances = []
     for trainingList, label in zip (trainingLists, trainingLabels):
-        value = euclideanDistance(testList, trainingList)
-        distance.append((value, label))
-    distance.sort(key=itemgetter(0))
+        value = distance_fn(testList, trainingList)
+        distances.append((value, label))
+    distances.sort(key=itemgetter(0))
     votelabels = []
-    for x in distance[:k]:
+    for x in distances[:k]:
         votelabels.append(x[1])
-    return mode(votelabels)
+    counts = {}
+    for label in votelabels:
+        counts[label] = counts.get(label, 0) + 1
+    max_count = max(counts.values())
+    candidates = [label for label, count in counts.items() if count == max_count]
+    if len(candidates) == 1:
+        return candidates[0]
+    else:
+        return random.choice(candidates)
