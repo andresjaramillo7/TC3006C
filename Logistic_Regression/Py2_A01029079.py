@@ -41,7 +41,7 @@ def graficaDatos(X, y, theta):
 
     # Ahora usamos mesh_dots para obtener las predicciones y despues mapeamos x1 y x2 polinomialmente
     mesh_dots = np.c_[X1.ravel(), X2.ravel()]
-    Z = mapeoCaracteristicas(mesh_dots) @ theta
+    Z = mapeoCaracteristicas(mesh_dots) @ theta # Predicciones
     Z = Z.reshape(X1.shape) # Reshape para que coincida con la malla
 
     # Graficamos la frontera de decisión
@@ -52,59 +52,95 @@ def graficaDatos(X, y, theta):
     plt.show()
 
 def mapeoCaracteristicas(X):
+    """
+    Mapea las características polinomialmente hasta el grado, también agregando el bias.
+    Siguiendo la fórmula: x1^i-j * x2^j
+    Retorna: Matriz de características mapeadas (m, 28) al tener grado 6.
+
+    Parámetros:
+        X: Matriz de características originales (m, 2).
+    """
     x1 = X[:, 0]
     x2 = X[:, 1]
     degree = 6
     feats = [np.ones(x1.shape[0])] # bias
 
+    # Genera x1^(i-j) * x2^j para todo 1<=i<=degree y 0<=j<=i
     for i in range(1, degree + 1):
         for j in range(i + 1):
             feats.append((x1 ** (i - j)) * (x2 ** j))
 
     return np.column_stack(feats)
 
-X_mapped = mapeoCaracteristicas(X_vector)
-
 def sigmoidal(z):
+    """
+    Ejecuta la función sigmoidal. Fórmula: 1 / (1 + e^(-z))
+    """
     return 1 / (1 + np.exp(-z))
 
 def funcionCostoReg(theta, X, y, lambda_):
-    m = y.size
-    h = sigmoidal(X.dot(theta))
+    """
+    Calcula el costo de la regresión logística con regularización.
+    También calcula el gradiente descendente ya vectorizado.
+    
+    Parámetros:
+        theta: Vector de parámetros pesos (n,).
+        X: Matriz de características (m, n).
+        y: Vector de etiquetas (m,).
+        lambda_: Parámetro de regularización.
+    """
+    m = y.size # Número de ejemplos
+    h = sigmoidal(X.dot(theta)) # Hipótesis
 
+    # Función de costo para regresión lineal
     J = (-1 / m) * (y @ np.log(h) + (1 - y) @ np.log(1 - h)) + (lambda_ / (2 * m)) * np.sum(theta[1:] ** 2)
-    gradient = (X.T @ (h - y)) / m
-    gradient[1:] += (lambda_ / m) * theta[1:]
+    
+    gradient = (X.T @ (h - y)) / m # Gradiente cuando es j = 0
+    gradient[1:] += (lambda_ / m) * theta[1:] # Gradiente cuando j >= 1
     
     return J, gradient
 
-lambda_ = 1
-
-theta0 = np.zeros(X_mapped.shape[1])
-J0, g0 = funcionCostoReg(theta0, X_mapped, y_vector, lambda_)
-print("J(theta=0, λ=1) =", J0)
-
 def aprende(theta, X, y, iteraciones):
-    lambda_ = 1
+    """
+    Entrenamiento con la gradiente descendiente de funcionCostoReg.
+    También actualiza theta en cada época con: theta -= alpha * grad
+    
+    Parámetros:
+        theta: Vector de parámetros pesos (n,).
+        X: Matriz de características (m, n).
+        y: Vector de etiquetas (m,).
+        iteraciones: Número de épocas para el entrenamiento.
+    """
     for epoch in range(iteraciones):
         J, grad = funcionCostoReg(theta, X, y, lambda_)
-        theta -= alpha * grad
+        theta -= alpha * grad # Actualiza theta
     return theta
 
 def predice(X, theta):
+    """
+    Realiza predicciones utilizando el modelo entrenado con un umbral de 0.5.
+    Retorna un vector de predicciones con 1s y 0s.
+    
+    Parámetros:
+        X: Matriz de características (m, n).
+        theta: Vector de parámetros pesos ya entrenado (n,).
+    """
     prob = sigmoidal(X.dot(theta))
     return (prob >= 0.5).astype(int)
 
+"""
+Llamamos a las funciones, primero mapeamos el vector de las X para que sea de grado 6.
+Después creamos nuestro vector de parámetros iniciales theta0 con el tamaño de la matriz de características mapeadas.
+Luego ajustamos las thetas utilizando el algoritmo de gradiente descendente.
+Al mismo tiempo entrenamos el modelo y después realizamos las predicciones.
+Hacemos un print de las predicciones y la precisión.
+Terminamos graficando los datos y la frontera de decisión.
+"""
+X_mapped = mapeoCaracteristicas(X_vector)
+theta0 = np.zeros(X_mapped.shape[1])
 theta = aprende(theta0, X_mapped, y_vector, iteraciones)
 predicciones = predice(X_mapped, theta)
 print("Predicciones:", predicciones)
 accuracy = np.mean(predicciones == y_vector) * 100
 print(f"Accuracy: {round(accuracy, 6)}%")
-"""
-Llamamos a las funciones para obtener primero el costo sin modificar las thetas,
-después las ajustamos con la gradiente descendente y graficamos los datos.
-"""
 graficaDatos(X_vector, y_vector, theta)
-# print(calculaCosto(X1_list, X2_list, y_list, theta)) # Cálculo del costo inicial
-# gradienteDescendente(X1_list, X2_list, y_list, theta, alpha, iteraciones) # Ajuste de thetas
-# graficaDatos(X1_list, X2_list, y_list, theta) # Gráfica de los datos
